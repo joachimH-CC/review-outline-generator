@@ -138,6 +138,18 @@ Keep the existing config field, but treat the options differently:
 - `custom`
   Use this only when the user gives clear structural instructions in the custom notes section. Follow the requested structure only when it can still be grounded in the provided materials.
 
+## Dynamic Analysis Chapter Detection
+
+When a spec file or keypoints file contains both question mappings (问答) and analysis keywords (分析题), the skill MUST distinguish between them:
+
+- Chapters listed under "问答" in the keypoints file → format as Q&A chapters using `question_source=exercises`
+- Chapters listed under "分析题" in the keypoints file → format as analysis chapters using the detailed four-part structure (see Assembly Rules)
+- Chapters appearing in both lists → include both sections
+
+When only a `chapter_focus_map` is provided (keypoints mode), all chapters use the keypoints format.
+
+When `analysis_keywords` are present but no separate question mapping exists for a chapter, include an analysis section in that chapter's output.
+
 ## `reference_format` Semantics
 
 Treat `reference_format` as a style reference, not as a strict schema.
@@ -171,6 +183,8 @@ If a textbook PDF is scanned and has no extractable text, treat generated page i
 
 ## Assembly Rules
 
+### General Rules
+
 When assembling output:
 
 - keep answers and notes grounded in the extracted material
@@ -189,12 +203,67 @@ If a needed point cannot be found in the provided material:
 - mark it clearly, for example with `[PPT中未找到对应内容]`
 - do not invent missing content
 
+### Heading Format
+
+Use consistent heading levels:
+
+- H1: Chapter title (`# 第X章 {Name}`)
+- H4: Section grouping label (`#### 问答`, `#### 重点概念`, `#### 分析题`)
+- H5: Question heading (`##### X. {full question text}`) — do NOT prefix with "问题" or similar words; use the raw question number directly
+- H6: Analysis sub-heading (`###### 分析题 — {Topic}`) or keypoint heading (`###### 重点{X}. {name}`)
+
+### Content Fidelity
+
+Preserve original exercise text structure:
+
+- Keep the original paragraph structure from the exercise source — do not aggressively rephrase or restructure
+- Use the original wording; only trim obvious formatting artifacts (page numbers, docx metadata)
+- Original bullet numbering `(1)`, `A.`, etc. should be preserved
+- Definitions and supplementary explanations from PPT belong in quote blocks (`>`)
+- The goal is a clean reading experience, not a full rewrite
+
+### PPT Supplement Format
+
+Use the consistent format:
+
+```
+> **PPT补充（Slide {number}）：**
+> - {point 1}
+> - {point 2}
+```
+
+When multiple slides are relevant, repeat the pattern — each slide gets its own `**PPT补充（Slide X）：**` line.
+
+### Analysis Section Structure (for analysis chapters)
+
+When a chapter is identified as an analysis chapter (e.g., use case diagrams, sequence diagrams, class diagrams), use a detailed four-part structure:
+
+```
+###### 分析题 — {Topic}
+
+**一、{Concept / Basic Concepts}**
+{Explanation of the modeling concept, its purpose, and context}
+
+**二、{Core Elements}**
+{List and explain each core element, one by one, with descriptions}
+
+**三、{Advanced / Relationships}**
+{Explain relationships between elements, complex concepts, conventions}
+
+**四、{Analysis Examples}**
+{Walk through concrete examples step by step, referencing exercise prompts}
+```
+
+The four-part structure IS the output for analysis chapters — do not use the standard Q&A format (`#### 问答` + `##### X.`) for these chapters.
+
 ## Diagram Handling
 
 Treat `diagram_mode` as an output preference, but in exam-review output there is one stronger default:
 
 - if the prompt explicitly asks for a diagram-like artifact such as `用例图`, `顺序图`, `活动图`, `状态机图`, `数据流图`, `类图`, `实体关系模型`, `组织结构图`, `角色权限矩阵`, or similar visual material, insert source images by default when available
 - do not ask the user for confirmation before inserting those source images unless the source images are missing or ambiguous
+
+**Important image relevance rule**: Only insert images that are clearly relevant and recognizable. If an extracted image is unidentifiable (e.g., blank, partial crop, unrelated decoration, garbled rendering), skip it — do not insert meaningless images just to satisfy the "include images" flag.
 
 Then apply the mode-specific behavior:
 

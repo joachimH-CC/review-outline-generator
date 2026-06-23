@@ -1,10 +1,10 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Build Markdown review outlines from a filled template spec or a natural-language
 spec file that points at local course materials.
 
 Usage:
-  python build_review_outline.py <spec_path> [--output-dir DIR] [--work-dir DIR] [--refresh]
+    python build_review_outline.py <spec_path> [--output-dir DIR] [--work-dir DIR] [--refresh]
 """
 from __future__ import annotations
 
@@ -15,98 +15,41 @@ import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 SUPPORTED_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp"}
 DIAGRAM_TERMS = (
-    "鐢ㄤ緥鍥?,
-    "鐢ㄤ緥琛?,
-    "椤哄簭鍥?,
-    "娲诲姩鍥?,
-    "鐘舵€佹満鍥?,
-    "鐘舵€佽〃",
-    "鏁版嵁娴佸浘",
-    "绫诲浘",
-    "瀹炰綋鍏崇郴妯″瀷",
-    "涓氬姟鏁版嵁鍥?,
-    "缁勭粐缁撴瀯鍥?,
-    "瑙掕壊鏉冮檺鐭╅樀",
-    "鏁版嵁瀛楀吀",
-    "鏁版嵁瀛楀吀琛?,
+    "用例图",
+    "用例表",
+    "顺序图",
+    "活动图",
+    "状态机图",
+    "状态表",
+    "数据流图",
+    "类图",
+    "实体关系模型",
+    "业务数据图",
+    "组织结构图",
+    "角色权限矩阵",
+    "数据字典",
+    "数据字典表",
 )
 STOP_TOKENS = {
-    "浠€涔?,
-    "鍝簺",
-    "濡備綍",
-    "涓轰粈涔?,
-    "浠ュ強",
-    "涓€涓?,
-    "杩涜",
-    "鍙互",
-    "绯荤粺",
-    "闇€姹?,
-    "鐢ㄦ埛",
-    "浣跨敤",
-    "鍒涘缓",
-    "鎻忚堪",
-    "鍖呮嫭",
-    "搴旇",
-    "鍏朵腑",
-    "鍒嗗埆",
-    "璇存槑",
-    "涓句緥",
-    "鏈珷",
-    "鐩稿叧",
-    "鏃跺€?,
-    "杩樻湁",
-    "涓昏",
-    "绠＄悊",
-    "妯″瀷",
-    "鍥句腑",
-    "杞欢",
-    "璇剧▼",
-    "娴佺▼",
-    "鏁版嵁",
-    "瀵硅薄",
-    "绫诲瀷",
-    "鏂规硶",
-    "鍥捐〃",
-    "淇℃伅",
-    "鍔熻兘",
-    "濡傛灉",
-    "閫氳繃",
-    "闇€瑕?,
-    "椤圭洰",
-    "鍐呭",
-    "鐢ㄦ埛鏁呬簨",
-    "鍥句功棣?,
-    "鍦ㄧ嚎",
-    "搴旂敤绋嬪簭",
-    "绯荤粺涓?,
+    "什么", "哪些", "如何", "为什么", "以及", "一个", "进行", "可以",
+    "系统", "需求", "用户", "使用", "创建", "描述", "包括", "应该",
+    "其中", "分别", "说明", "举例", "本章", "相关", "时候", "还有",
+    "主要", "管理", "模型", "图中", "软件", "课程", "流程", "数据",
+    "对象", "类型", "方法", "图表", "信息", "功能", "如果", "通过",
+    "需要", "项目", "内容", "用户故事", "图书馆", "在线", "应用程序",
+    "系统中",
 }
 CHINESE_NUMERAL = {
-    "涓€": 1,
-    "浜?: 2,
-    "涓?: 3,
-    "鍥?: 4,
-    "浜?: 5,
-    "鍏?: 6,
-    "涓?: 7,
-    "鍏?: 8,
-    "涔?: 9,
-    "鍗?: 10,
-    "鍗佷竴": 11,
-    "鍗佷簩": 12,
-    "鍗佷笁": 13,
-    "鍗佸洓": 14,
-    "鍗佷簲": 15,
-    "鍗佸叚": 16,
-    "鍗佷竷": 17,
-    "鍗佸叓": 18,
-    "鍗佷節": 19,
-    "浜屽崄": 20,
+    "一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
+    "六": 6, "七": 7, "八": 8, "九": 9, "十": 10,
+    "十一": 11, "十二": 12, "十三": 13, "十四": 14, "十五": 15,
+    "十六": 16, "十七": 17, "十八": 18, "十九": 19, "二十": 20,
 }
 
 
@@ -137,10 +80,11 @@ class QuestionSegment:
 @dataclass
 class StyleConfig:
     section_heading: str = "####"
-    question_heading: str = "######"
-    supplement_title: str = "PPT琛ュ厖"
-    image_section_title: str = "鐩稿叧鍥剧ず"
-    image_caption_prefix: str = "鍥?
+    question_heading: str = "#####"
+    supplement_title: str = "PPT补充"
+    image_section_title: str = "相关图示"
+    image_caption_prefix: str = "图"
+    analysis_heading: str = "######"
 
 
 @dataclass
@@ -148,7 +92,7 @@ class SpecConfig:
     spec_path: Path
     output_dir: Path
     slides_dir: Optional[Path] = None
-    slides_format: str = "pptx"  # "pptx", "pdf", or "auto" (detect from first matching file)
+    slides_format: str = "pptx"
     exercises_dir: Optional[Path] = None
     textbook_pdf: Optional[Path] = None
     reference_format: Optional[Path] = None
@@ -176,7 +120,7 @@ def run_extractor(script_name: str, source_dir: Path, text_dir: Path, image_dir:
 
 
 def normalize_path(raw: str, base_dir: Path) -> Path:
-    raw = raw.strip().strip('"').strip("'")
+    raw = raw.strip().strip('"').strip("'").strip('"').strip("'")  # 多次strip处理嵌套引号
     candidate = Path(raw)
     if candidate.is_absolute():
         return candidate
@@ -202,14 +146,14 @@ def clean_scalar(value: str) -> str:
 def parse_focus_list(text: str) -> List[str]:
     cleaned = clean_scalar(text)
     cleaned = cleaned.strip("[]")
-    pieces = re.split(r"[锛?銆?锛?]+", cleaned)
+    pieces = re.split(r"[，、,]+", cleaned)
     return [piece.strip().strip('"').strip("'") for piece in pieces if piece.strip().strip('"').strip("'")]
 
 
 def chapter_label_to_int(label: str) -> Optional[int]:
-    match = re.search(r"绗琝s*([涓€浜屼笁鍥涗簲鍏竷鍏節鍗?-9]+)\s*绔?, label)
+    match = re.search(r"第\s*([一二三四五六七八九十0-9]+)\s*章", label)
     if not match:
-        match = re.search(r"^([0-9]+)\s*[銆?锛嶿", label)
+        match = re.search(r"^([0-9]+)\s*[章、.]", label)
         if match:
             return int(match.group(1))
         return None
@@ -235,8 +179,8 @@ def parse_chapter_range(text: str) -> List[int]:
 
 
 def split_analysis_keywords(text: str) -> List[str]:
-    pieces = re.split(r"[锛?銆?\s]+", text.strip())
-    return [piece for piece in pieces if piece and piece not in {"鐪嬫弿杩拌〃杈?, "鏂囧瓧涓€鐢诲浘", "渚嬪瓙涓€琛ヨ〃"}]
+    pieces = re.split(r"[、。\s]+", text.strip())
+    return [piece for piece in pieces if piece and piece not in {"看描述表述", "文字一画图", "例子一补表"}]
 
 
 def parse_keypoints_file(path: Path) -> Tuple[Dict[int, List[int]], Dict[int, List[str]]]:
@@ -247,10 +191,10 @@ def parse_keypoints_file(path: Path) -> Tuple[Dict[int, List[int]], Dict[int, Li
         line = raw.strip()
         if not line:
             continue
-        if "闂瓟" in line:
+        if "问答" in line:
             mode = "question"
             continue
-        if "鍒嗘瀽棰? in line:
+        if "分析题" in line:
             mode = "analysis"
             continue
         if mode == "question" and line.startswith("-"):
@@ -259,11 +203,11 @@ def parse_keypoints_file(path: Path) -> Tuple[Dict[int, List[int]], Dict[int, Li
                 continue
             number_text = line.split(maxsplit=1)[-1]
             question_map[chapter] = parse_number_list(number_text)
-        elif mode == "analysis" and "绗? in line:
+        elif mode == "analysis" and "第" in line:
             chapter = chapter_label_to_int(line)
             if chapter is None:
                 continue
-            keywords = split_analysis_keywords(re.sub(r"^绗琜涓€浜屼笁鍥涗簲鍏竷鍏節鍗?-9]+绔?, "", line).strip())
+            keywords = split_analysis_keywords(re.sub(r"^第[一二三四五六七八九十0-9]+章", "", line).strip())
             if keywords:
                 analysis_map[chapter] = keywords
     return question_map, analysis_map
@@ -273,20 +217,20 @@ def parse_natural_focus_map(text: str) -> Dict[int, List[str]]:
     focus_map: Dict[int, List[str]] = {}
     for raw in text.splitlines():
         line = raw.strip().lstrip("-* ")
-        if not line or "绗? not in line:
+        if not line or "第" not in line:
             continue
         chapter = chapter_label_to_int(line)
         if chapter is None:
             continue
-        if not any(token in line for token in ("閲嶇偣", "鑰冪偣", "鐭ヨ瘑鐐?, "澶嶄範鐐?)):
+        if not any(token in line for token in ("重点", "考点", "知识点", "复习点")):
             continue
-        if "锛? in line:
-            _, rest = line.split("锛?, 1)
+        if re.search(r"第[一二三四五六七八九十0-9]+章", line):
+            _, rest = line.split("：", 1) if "：" in line else (None, line)
         elif ":" in line:
             _, rest = line.split(":", 1)
         else:
-            rest = re.sub(r"^绗琜涓€浜屼笁鍥涗簲鍏竷鍏節鍗?-9]+\s*绔?, "", line)
-            rest = re.sub(r"^(閲嶇偣|鑰冪偣|鐭ヨ瘑鐐箌澶嶄範鐐?", "", rest).strip()
+            rest = re.sub(r"^第[一二三四五六七八九十0-9]+\s*章", "", line)
+            rest = re.sub(r"^(重点|考点|知识点|复习点)", "", rest).strip()
         items = parse_focus_list(rest)
         if items:
             focus_map[chapter] = items
@@ -327,7 +271,7 @@ def parse_template_spec(spec_path: Path, text: str) -> Optional[SpecConfig]:
             elif key == "slides_dir" and value:
                 cfg.slides_dir = normalize_path(value, spec_path.parent)
             elif key == "slides_format" and value:
-                cfg.slides_format = value.strip().strip('\"').strip('"')
+                cfg.slides_format = value.strip().strip('\\"').strip('"')
             elif key == "exercises_dir" and value:
                 cfg.exercises_dir = normalize_path(value, spec_path.parent)
             elif key == "textbook_pdf" and value:
@@ -362,16 +306,27 @@ def parse_template_spec(spec_path: Path, text: str) -> Optional[SpecConfig]:
 
 def parse_natural_spec(spec_path: Path, text: str) -> SpecConfig:
     cfg = SpecConfig(spec_path=spec_path, output_dir=spec_path.parent)
-    link_pattern = re.compile(r"\[[^\]]+\]\(([^)]+)\)|\[[^\]]+\]\(\"([^\"]+)\"\)")
+    link_pattern = re.compile(r"\[([^\]]+)\]\(([^)]+)\)|\[([^\]]+)\]\(\"([^\"]+)\"\)")
     for match in link_pattern.finditer(text):
-        raw = match.group(1) or match.group(2)
+        raw = match.group(2) or match.group(4)
         resolved = normalize_path(raw, spec_path.parent)
+
+        # Fallback: if absolute path doesn't exist, try relative to spec_path.parent
+        if not resolved.exists():
+            # Strip quotes again for is_absolute check
+            clean_raw = raw.strip().strip('"').strip("'").strip('"').strip("'")
+            if Path(clean_raw).is_absolute():
+                filename = Path(clean_raw).name
+                fallback = spec_path.parent / filename
+                if fallback.exists():
+                    resolved = fallback
+
         lower_name = resolved.name.lower()
         if resolved.is_dir() and resolved.name == "ppt":
             cfg.slides_dir = resolved
-        elif resolved.is_dir() and "璇惧悗涔犻" in resolved.name:
+        elif resolved.is_dir() and "课后习题" in resolved.name:
             cfg.exercises_dir = resolved
-        elif resolved.suffix.lower() == ".md" and "鑰冪偣" in resolved.name:
+        elif resolved.suffix.lower() == ".md" and "考点" in resolved.name:
             cfg.keypoints_path = resolved
         elif resolved.suffix.lower() == ".pdf":
             cfg.textbook_pdf = resolved
@@ -383,7 +338,7 @@ def parse_natural_spec(spec_path: Path, text: str) -> SpecConfig:
         if candidate.exists():
             cfg.textbook_pdf = candidate
 
-    range_match = re.search(r"(\d+)\s*-\s*(\d+)绔?, text)
+    range_match = re.search(r"(\d+)\s*-\s*(\d+)章", text)
     if range_match:
         cfg.chapter_numbers = list(range(int(range_match.group(1)), int(range_match.group(2)) + 1))
     else:
@@ -392,7 +347,7 @@ def parse_natural_spec(spec_path: Path, text: str) -> SpecConfig:
             line = raw_line.strip()
             if not line:
                 continue
-            if any(token in line for token in ("鏈€鍚庣殑鐢熸垚缁撴灉", "鍏?, "绗?绔?, "绗琗绔?, "绗瑇绔?)):
+            if any(token in line for token in ("按章节生成", "生成", "章", "章节", "章节")):
                 explicit_line = line
                 break
         if explicit_line:
@@ -400,9 +355,9 @@ def parse_natural_spec(spec_path: Path, text: str) -> SpecConfig:
             if explicit_range:
                 cfg.chapter_numbers = list(range(int(explicit_range.group(1)), int(explicit_range.group(2)) + 1))
 
-    if "涓嶈鑷繁鐢熸垚" in text or "涓ユ牸鏍规嵁" in text:
+    if "整理图示" in text or "整理相关图" in text:
         cfg.include_images = True
-    if "娌℃湁璇惧悗涔犻" in text or "鏃犺鍚庝範棰? in text or "娌℃湁涔犻" in text:
+    if "只用课后习题" in text or "只用习题" in text or "只用题" in text:
         cfg.question_source = "keypoints"
 
     cfg.chapter_focus_map = parse_natural_focus_map(text)
@@ -415,7 +370,7 @@ def parse_natural_spec(spec_path: Path, text: str) -> SpecConfig:
 def parse_spec(spec_path: Path, output_dir: Optional[Path]) -> SpecConfig:
     text = spec_path.read_text(encoding="utf-8")
     cfg = parse_template_spec(spec_path, text) or parse_natural_spec(spec_path, text)
-    explicit_range = re.search(r"(?<!\d)(\d+)\s*-\s*(\d+)\s*绔?, text)
+    explicit_range = re.search(r"(?<!\d)(\d+)\s*-\s*(\d+)\s*章", text)
     if explicit_range:
         start = int(explicit_range.group(1))
         end = int(explicit_range.group(2))
@@ -453,20 +408,20 @@ def infer_style(reference_path: Optional[Path]) -> StyleConfig:
         stripped = line.strip()
         if not stripped:
             continue
-        if re.match(r"^#+\s+\{棰樺瀷鏍囩\}", stripped):
+        if re.match(r"^#+\s+\{.*题型.*\}", stripped):
             level = len(stripped) - len(stripped.lstrip("#"))
             style.section_heading = "#" * level
             continue
-        if re.match(r"^#+\s+\{棰樺彿\}", stripped):
+        if re.match(r"^#+\s+\{.*题号.*\}", stripped):
             level = len(stripped) - len(stripped.lstrip("#"))
             style.question_heading = "#" * level
             continue
-        supplement_match = re.match(r"^>\s+\*\*(.+?)锛歕*\*", stripped)
+        supplement_match = re.match(r"^>\s+\*\*(.+?)补充?\*\*", stripped)
         if supplement_match:
             style.supplement_title = supplement_match.group(1).strip()
             continue
-        if re.match(r"^\*鍥綷{?.+\*?$", stripped) or stripped.startswith("*鍥?):
-            style.image_caption_prefix = "鍥?
+        if re.match(r"^\*图\d+.*\*?$", stripped) or stripped.startswith("*图"):
+            style.image_caption_prefix = "图"
     return style
 
 
@@ -487,7 +442,7 @@ def scan_assets(cfg: SpecConfig) -> Dict[int, ChapterAssets]:
         for path in sorted(cfg.slides_dir.iterdir()):
             if path.suffix.lower() != ".pptx" or path.name.startswith("~$"):
                 continue
-            match = re.search(r"绗琝s*(\d+)\s*绔燶s*(.+)\.pptx$", path.name)
+            match = re.search(r"第\s*(\d+)\s*章\s*(.+)\.pptx$", path.name)
             if not match:
                 continue
             chapter = int(match.group(1))
@@ -501,13 +456,13 @@ def scan_assets(cfg: SpecConfig) -> Dict[int, ChapterAssets]:
             if not match:
                 continue
             chapter = int(match.group(1))
-            title = assets.get(chapter).title if chapter in assets else f"绗瑊chapter}绔?
+            title = assets.get(chapter).title if chapter in assets else f"第{chapter}章"
             assets.setdefault(chapter, ChapterAssets(chapter=chapter, title=title)).exercise_file = path
     if cfg.textbook_pdf:
         for chapter in cfg.chapter_numbers:
-            assets.setdefault(chapter, ChapterAssets(chapter=chapter, title="鏁欐潗閲嶇偣"))
+            assets.setdefault(chapter, ChapterAssets(chapter=chapter, title="教材重点"))
     for chapter, focus_points in cfg.chapter_focus_map.items():
-        entry = assets.setdefault(chapter, ChapterAssets(chapter=chapter, title="鏁欐潗閲嶇偣"))
+        entry = assets.setdefault(chapter, ChapterAssets(chapter=chapter, title="教材重点"))
         entry.focus_points = focus_points
     return assets
 
@@ -564,7 +519,7 @@ def ensure_extracted(cfg: SpecConfig, assets: Dict[int, ChapterAssets], work_dir
         if textbook_text_file is not None and textbook_text_file.exists():
             entry.textbook_text_file = textbook_text_file
             entry.textbook_image_files = textbook_images
-            if entry.title == "鏁欐潗閲嶇偣":
+            if entry.title == "教材重点":
                 entry.title = infer_textbook_chapter_title(textbook_text_file, chapter) or entry.title
 
 
@@ -606,10 +561,10 @@ def read_ppt_slides(path: Optional[Path]) -> List[Tuple[int, str]]:
 
 
 def chapter_markers(chapter: int) -> List[str]:
-    markers = [f"绗瑊chapter}绔?, f"绗?{chapter} 绔?]
+    markers = [f"第{chapter}章", f"第 {chapter} 章"]
     for label, value in CHINESE_NUMERAL.items():
         if value == chapter:
-            markers.extend([f"绗瑊label}绔?, f"绗?{label} 绔?])
+            markers.extend([f"第{label}章", f"第 {label} 章"])
             break
     return markers
 
@@ -661,623 +616,359 @@ def infer_textbook_chapter_title(path: Optional[Path], chapter: int) -> Optional
                 compact_marker = re.sub(r"\s+", "", marker)
                 if compact_marker not in compact:
                     continue
-                tail = compact.split(compact_marker, 1)[-1].strip(" 锛?.-")
+                tail = compact.split(compact_marker, 1)[-1].strip(" 　.·-")
                 if 2 <= len(tail) <= 24 and not tail.isdigit():
                     return tail
     return None
 
 
-def normalize_block(text: str) -> str:
-    cleaned: List[str] = []
-    for raw in text.splitlines():
-        line = raw.strip()
-        if not line:
-            if cleaned and cleaned[-1] != "":
-                cleaned.append("")
+def parse_question_segments(text: str) -> List[QuestionSegment]:
+    """
+    Parse question segments from exercise text.
+    Supports two formats:
+    1. Explicit markers: "问题1." or "题目1、" or "第1题"
+    2. Implicit format: lines with question keywords (什么/如何/列举/说明/阐述) are questions
+    """
+    segments: List[QuestionSegment] = []
+    lines = text.splitlines()
+
+    # Try explicit marker pattern first
+    explicit_pattern = re.compile(r"^(?:问题|题目|第?)(\d+)[、.。:：]\s*(.+)", re.IGNORECASE)
+    current_segment: Optional[QuestionSegment] = None
+    found_explicit = False
+
+    for idx, line in enumerate(lines, 1):
+        stripped = line.strip()
+        if not stripped:
+            if current_segment is not None:
+                current_segment.body += "\n"
             continue
-        cleaned.append(line)
-    while cleaned and cleaned[-1] == "":
-        cleaned.pop()
-    return "\n".join(cleaned)
+        match = explicit_pattern.match(stripped)
+        if match:
+            found_explicit = True
+            if current_segment is not None:
+                current_segment.end_line = idx - 1
+                segments.append(current_segment)
+            question_index = int(match.group(1))
+            prompt = match.group(2).strip()
+            current_segment = QuestionSegment(index=question_index, prompt=prompt, body="", start_line=idx)
+        elif current_segment is not None:
+            current_segment.body += line + "\n"
 
+    if current_segment is not None:
+        current_segment.end_line = len(lines)
+        segments.append(current_segment)
 
-def alpha_label(index: int) -> str:
-    return chr(ord("A") + index - 1) + "."
+    # If explicit markers found, return them
+    if found_explicit and segments:
+        for segment in segments:
+            segment.body = segment.body.strip()
+        return segments
 
+    # Otherwise, use implicit format: identify questions by keywords
+    QUESTION_KEYWORDS = ('什么', '如何', '列举', '说明', '阐述', '举例', '简述', '描述', '分别', '区别', '联系', '主要包含', '包含哪')
+    question_num = 0
+    current_segment = None
+    skip_header = True
 
-def format_answer_body(text: str) -> str:
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
-    if not lines:
-        return ""
-
-    output: List[str] = []
-    idx = 0
-    while idx < len(lines):
-        line = lines[idx]
-        if re.fullmatch(r"锛圽d+锛?, line) and idx + 1 < len(lines):
-            output.append(f"{line}{lines[idx + 1]}")
-            idx += 2
+    for idx, line in enumerate(lines, 1):
+        stripped = line.strip()
+        if not stripped:
             continue
-        if re.fullmatch(r"[A-Z]\.", line) and idx + 1 < len(lines):
-            output.append(f"{line}{lines[idx + 1]}")
-            idx += 2
+
+        # Skip header lines (title, reminder)
+        if skip_header and any(kw in stripped for kw in ('提醒', '参考', '答案仅', '章节')):
             continue
-        output.append(line)
-        idx += 1
+        skip_header = False
 
-    return "\n".join(output)
+        # Check if this is a question line
+        is_question = any(kw in stripped for kw in QUESTION_KEYWORDS) and len(stripped) > 15
 
+        if is_question:
+            # Save previous segment
+            if current_segment is not None:
+                current_segment.end_line = idx - 1
+                segments.append(current_segment)
 
-def is_caption_line(line: str) -> bool:
-    return bool(re.match(r"^(鍥緗琛▅\[Table)", line))
-
-
-def is_question_line(line: str) -> bool:
-    if not line or line.startswith("鎻愰啋锛?) or is_caption_line(line) or line.startswith("|"):
-        return False
-    if re.match(r"^锛圽d+锛?, line):
-        return False
-    if line.endswith("锛?) or line.endswith("?"):
-        return True
-    if ("锛? in line or "?" in line) and "鈥? not in line and "鈥? not in line and "锛? not in line:
-        return True
-    if re.match(r"^(璇穦鎬濊€億鍒椾妇|绠€杩皘灏濊瘯|鎵撳紑|鏌ョ湅|鍘诲畼缃戜笅杞絴鏍规嵁|閫夋嫨涓€绉峾涓句緥璇存槑|闃愯堪|鍐欎笅|浠€涔堟槸|涓轰粈涔堟湁浜唡鍝簺椤圭洰|鍝簺绯荤粺|闄や簡鍙互浠巪瀹㈡埛鍦ㄦ弿杩?", line):
-        return True
-    if re.match(r"^涓?+(鍒涘缓|璁捐|缁樺埗|鎻忚堪|璁板綍)", line):
-        return True
-    if re.match(r"^(鍙傝€冭〃|鎸戦€変範棰榺鍒嗗埆浣跨敤)", line):
-        return True
-    if line.startswith("浣跨敤") and any(token in line for token in ("妯℃澘", "鏂规硶", "鏈珷")):
-        return True
-    if any(token in line for token in ("璇疯嚦灏?, "璇风畝杩?, "璇蜂粠", "璇风粯鍒?, "璇蜂妇渚?)):
-        return True
-    if line.startswith("鍦ㄥ") and "濡備綍" in line:
-        return True
-    return False
-
-
-def parse_question_segments(path: Optional[Path]) -> List[QuestionSegment]:
-    if path is None or not path.exists():
-        return []
-    lines = [line.strip() for line in path.read_text(encoding="utf-8").splitlines()]
-    lines = [line for line in lines if line]
-    if len(lines) <= 2:
-        return []
-    body_lines = lines[2:]
-    questions: List[QuestionSegment] = []
-    current_prompt = ""
-    current_body: List[str] = []
-    current_start = 0
-    index = 0
-    for line_idx, line in enumerate(body_lines):
-        if is_question_line(line):
-            if current_prompt:
-                questions.append(
-                    QuestionSegment(
-                        index=index,
-                        prompt=current_prompt,
-                        body=normalize_block("\n".join(current_body)),
-                        start_line=current_start,
-                        end_line=line_idx - 1,
-                    )
-                )
-            index += 1
-            current_prompt = line
-            current_body = []
-            current_start = line_idx
-            continue
-        if current_prompt:
-            current_body.append(line)
-    if current_prompt:
-        questions.append(
-            QuestionSegment(
-                index=index,
-                prompt=current_prompt,
-                body=normalize_block("\n".join(current_body)),
-                start_line=current_start,
-                end_line=len(body_lines) - 1,
+            # Start new segment
+            question_num += 1
+            current_segment = QuestionSegment(
+                index=question_num,
+                prompt=stripped,
+                body="",
+                start_line=idx
             )
-        )
-    return questions
+        elif current_segment is not None:
+            # Append to current answer body
+            current_segment.body += stripped + "\n"
 
+    # Save last segment
+    if current_segment is not None:
+        current_segment.end_line = len(lines)
+        segments.append(current_segment)
 
-def keywords(text: str) -> List[str]:
-    text = re.sub(r"[锛屻€傦紱锛氥€侊紙锛?)\[\]\"鈥溾€濃€樷€橽s]+", " ", text)
-    pieces = []
-    for token in text.split():
-        token = re.sub(r"^(绠€杩皘鍒椾妇|璇穦灏濊瘯|鎬濊€億浣跨敤|鍋囪|鎵撳紑|鏌ョ湅|鍒涘缓|鏍规嵁|閫夋嫨涓€绉峾涓轰簡|濡傛灉|瀵逛簬|鍦ㄥ)", "", token)
-        token = re.sub(r"(涔嬮棿|鏂归潰|杩涜|杩囩▼|搴旂敤绋嬪簭|绯荤粺)$", "", token)
-        pieces.extend(
-            part
-            for part in re.split(r"(?:鍜寍涓巪鍙妡鎴東鐨剕骞秥浠巪涓瓅瀵箌鍦▅鏃?", token)
-            if len(part) >= 2
-        )
-    tokens = set()
-    for piece in pieces:
-        if piece in STOP_TOKENS:
-            continue
-        if re.fullmatch(r"[A-Za-z0-9]{1,2}", piece):
-            continue
-        tokens.add(piece[:12])
-    return sorted(tokens)
-
-
-def focus_query_keywords(text: str) -> List[str]:
-    terms = keywords(text)
-    compact = re.sub(r"\s+", "", text)
-    if re.search(r"[\u4e00-\u9fff]", compact):
-        for size in (4, 3, 2):
-            if len(compact) < size:
-                continue
-            for idx in range(0, len(compact) - size + 1):
-                term = compact[idx : idx + size]
-                if term in STOP_TOKENS or re.fullmatch(r"\d+", term):
-                    continue
-                terms.append(term)
-    seen: List[str] = []
-    for term in terms:
-        if term and term not in seen:
-            seen.append(term)
-    return seen
-
-
-def slide_score(slide_text: str, query_keywords: Sequence[str]) -> Tuple[int, int]:
-    total = 0
-    distinct = 0
-    for keyword in query_keywords:
-        count = slide_text.count(keyword)
-        if count:
-            distinct += 1
-            total += min(count, 3)
-    return total, distinct
-
-
-def format_slide_excerpt(text: str) -> List[str]:
-    raw_lines = [line.strip() for line in text.splitlines() if line.strip()]
-    formatted: List[str] = []
-    for raw in raw_lines:
-        queue = [segment.strip() for segment in re.split(r"[锛?]+", raw) if segment.strip()]
-        if not queue:
-            continue
-        pieces: List[str] = []
-        for segment in queue:
-            segment = re.sub(r"(?<!^)(?=(?:锛圽d+锛墊[A-D]銆亅[涓€浜屼笁鍥涗簲鍏竷鍏節鍗乚+銆亅\d+[銆?]|[A-Za-z]\.))", "\n", segment)
-            pieces.extend(part.strip() for part in segment.splitlines() if part.strip())
-        formatted.extend(pieces)
-    return formatted
-
-
-def pick_slide_matches(slides: Sequence[Tuple[int, str]], query_text: str, limit: int = 2) -> List[Tuple[int, str]]:
-    query_keywords = keywords(query_text)
-    if not query_keywords:
-        return []
-    candidates: List[Tuple[int, int, int, str]] = []
-    for slide_idx, slide_text in slides:
-        score, distinct = slide_score(slide_text, query_keywords)
-        if distinct >= 2 or (distinct >= 1 and score >= 3):
-            candidates.append((score, distinct, slide_idx, slide_text))
-    candidates.sort(key=lambda item: (-item[0], -item[1], item[2]))
-    return [(slide_idx, slide_text) for _, _, slide_idx, slide_text in candidates[:limit]]
-
-
-def compact_textbook_line(line: str) -> str:
-    line = re.sub(r"\s+", " ", line).strip()
-    line = re.sub(r"^\d+\s*$", "", line).strip()
-    return line
-
-
-def textbook_units(path: Optional[Path], chapter: int) -> List[Tuple[int, str]]:
-    units: List[Tuple[int, str]] = []
-    for page_no, page_text in textbook_chapter_pages(path, chapter):
-        paragraphs = re.split(r"\n\s*\n|(?<=銆?\s+", page_text)
-        for paragraph in paragraphs:
-            for raw in paragraph.splitlines():
-                line = compact_textbook_line(raw)
-                if len(line) < 6:
-                    continue
-                if re.fullmatch(r"绗?\s*\d+\s*椤?", line):
-                    continue
-                units.append((page_no, line))
-    return units
-
-
-def pick_textbook_matches(
-    path: Optional[Path],
-    chapter: int,
-    query_text: str,
-    limit: int = 5,
-) -> List[Tuple[int, str]]:
-    query_keywords = focus_query_keywords(query_text)
-    cleaned_query = query_text.strip()
-    if cleaned_query and cleaned_query not in query_keywords:
-        query_keywords.append(cleaned_query)
-    units = textbook_units(path, chapter)
-    if not units:
-        return []
-    if not query_keywords:
-        return units[:limit]
-    candidates: List[Tuple[int, int, int, str]] = []
-    for position, (page_no, unit) in enumerate(units):
-        score, distinct = slide_score(unit, query_keywords)
-        if distinct:
-            candidates.append((score, distinct, position, f"p.{page_no} {unit}"))
-    candidates.sort(key=lambda item: (-item[0], -item[1], item[2]))
-    return [(int(re.search(r"p\.(\d+)", item[3]).group(1)), re.sub(r"^p\.\d+\s+", "", item[3])) for item in candidates[:limit]]
-
-
-def render_slide_matches(matches: Sequence[Tuple[int, str]]) -> List[str]:
-    if not matches:
-        return []
-    lines = ["> **PPT琛ュ厖锛?*"]
-    for slide_idx, slide_text in matches:
-        lines.append(f"> **Slide {slide_idx}**")
-        for item in format_slide_excerpt(slide_text):
-            lines.append(f"> - {item}")
-    return lines
-
-
-def render_style_slide_matches(style: StyleConfig, matches: Sequence[Tuple[int, str]]) -> List[str]:
-    if not matches:
-        return []
-    lines = [f"> **{style.supplement_title}锛?*"]
-    for slide_idx, slide_text in matches:
-        lines.append(f"> **Slide {slide_idx}**")
-        for item in format_slide_excerpt(slide_text):
-            lines.append(f"> - {item}")
-    return lines
-
-
-def render_textbook_matches(matches: Sequence[Tuple[int, str]]) -> List[str]:
-    if not matches:
-        return ["> **鏁欐潗鏁寸悊锛?* [鏁欐潗PDF涓湭鎵惧埌楂樺害瀵瑰簲鐨勬憳褰昡"]
-    lines = ["> **鏁欐潗鏁寸悊锛?*"]
-    for page_no, text in matches:
-        excerpt = text if len(text) <= 180 else text[:177].rstrip() + "..."
-        lines.append(f"> - p.{page_no} {excerpt}")
-    return lines
-
-
-def is_explicit_diagram_text(text: str) -> bool:
-    return any(term in text for term in DIAGRAM_TERMS)
-
-
-def collect_caption_occurrences(path: Optional[Path]) -> List[Tuple[int, str]]:
-    if path is None or not path.exists():
-        return []
-    lines = [line.strip() for line in path.read_text(encoding="utf-8").splitlines()]
-    body_lines = [line for line in lines if line][2:]
-    captions: List[Tuple[int, str]] = []
-    for idx, line in enumerate(body_lines):
-        if re.match(r"^鍥綷d+-\d+", line):
-            captions.append((idx, line))
-    return captions
-
-
-def select_exercise_images_by_segment(
-    assets: ChapterAssets,
-    segment: QuestionSegment,
-) -> List[Path]:
-    captions = collect_caption_occurrences(assets.exercise_text_file)
-    chosen: List[Path] = []
-    for occ_idx, (line_idx, _caption) in enumerate(captions):
-        if not (segment.start_line <= line_idx <= segment.end_line):
-            continue
-        if occ_idx < len(assets.exercise_image_files):
-            image = assets.exercise_image_files[occ_idx]
-            if image not in chosen:
-                chosen.append(image)
-    return chosen[:3]
-
-
-def parse_slide_number(path: Path) -> Optional[int]:
-    match = re.search(r"_slide(\d+)_", path.name)
-    return int(match.group(1)) if match else None
-
-
-def select_images(
-    assets: ChapterAssets,
-    segment: QuestionSegment,
-    slide_matches: Sequence[Tuple[int, str]],
-    explicit_diagram: bool,
-) -> List[Path]:
-    if not explicit_diagram:
-        return []
-    figure_images = select_exercise_images_by_segment(assets, segment)
-    if figure_images:
-        return figure_images
-    slide_numbers = [slide_idx for slide_idx, _ in slide_matches]
-    chosen: List[Path] = []
-    if slide_numbers:
-        by_slide: Dict[int, List[Path]] = {}
-        for image in assets.ppt_image_files:
-            slide_number = parse_slide_number(image)
-            if slide_number is not None:
-                by_slide.setdefault(slide_number, []).append(image)
-        for slide_idx in slide_numbers:
-            direct = by_slide.get(slide_idx, [])
-            if direct:
-                chosen.extend(direct[:2])
-                continue
-            nearest = sorted(
-                (
-                    (abs(candidate_slide - slide_idx), candidate_slide, paths)
-                    for candidate_slide, paths in by_slide.items()
-                ),
-                key=lambda item: (item[0], item[1]),
-            )
-            if nearest:
-                chosen.extend(nearest[0][2][:2])
-        if chosen:
-            seen = []
-            for image in chosen:
-                if image not in seen:
-                    seen.append(image)
-            return seen[:3]
-    if assets.exercise_image_files:
-        return assets.exercise_image_files[:3]
-    return []
-
-
-def copy_images(images: Sequence[Path], output_image_dir: Path, chapter: int, counter: List[int]) -> List[Tuple[str, str]]:
-    copied: List[Tuple[str, str]] = []
-    output_image_dir.mkdir(parents=True, exist_ok=True)
-    for image in images:
-        counter[0] += 1
-        target_name = f"ch{chapter:02d}-{counter[0]:02d}{image.suffix.lower()}"
-        target_path = output_image_dir / target_name
-        shutil.copy2(image, target_path)
-        copied.append((target_name, image.name))
-    return copied
-
-
-def render_images(
-    style: StyleConfig,
-    copied_images: Sequence[Tuple[str, str]],
-    chapter: int,
-) -> List[str]:
-    if not copied_images:
-        return []
-    lines = ["", f"**{style.image_section_title}锛?*", ""]
-    for idx, (filename, original_name) in enumerate(copied_images, 1):
-        lines.append(f"![{style.image_caption_prefix}{chapter}-{idx}](images/{filename})")
-        lines.append("")
-        lines.append(f"*{style.image_caption_prefix}{chapter}-{idx} 鏉ユ簮锛歿original_name}*")
-        lines.append("")
-    return lines
-
-
-def render_question(
-    style: StyleConfig,
-    question: QuestionSegment,
-    assets: ChapterAssets,
-    output_image_dir: Path,
-    image_counter: List[int],
-    include_images: bool = True,
-) -> List[str]:
-    slide_matches = pick_slide_matches(read_ppt_slides(assets.ppt_text_file), question.prompt)
-    explicit_diagram = is_explicit_diagram_text(question.prompt) or is_explicit_diagram_text(question.body)
-    selected_images = select_images(assets, question, slide_matches, include_images and explicit_diagram)
-    copied = copy_images(selected_images, output_image_dir, assets.chapter, image_counter) if selected_images else []
-
-    body = format_answer_body(question.body) or "[璇惧悗涔犻涓棰樻湭鎻愬彇鍒版鏂囧唴瀹筣"
-    lines = [f"{style.question_heading} {question.index}. {question.prompt}", "", body]
-    lines.extend(render_images(style, copied, assets.chapter))
-    lines.append("")
-    lines.extend(render_style_slide_matches(style, slide_matches))
-    lines.append("")
-    return lines
-
-
-def render_keypoint_sections(
-    style: StyleConfig,
-    assets: ChapterAssets,
-    output_image_dir: Path,
-    image_counter: List[int],
-) -> List[str]:
-    slides = read_ppt_slides(assets.ppt_text_file)
-    lines = [f"{style.section_heading} 閲嶇偣姒傚康", ""]
-    if assets.focus_points:
-        for idx, focus in enumerate(assets.focus_points, 1):
-            lines.extend([f"{style.question_heading} 閲嶇偣{idx}. {focus}", ""])
-            textbook_matches = pick_textbook_matches(assets.textbook_text_file, assets.chapter, focus)
-            lines.extend(render_textbook_matches(textbook_matches))
-            lines.append("")
-            slide_matches = pick_slide_matches(slides, focus)
-            if slide_matches:
-                lines.extend(render_style_slide_matches(style, slide_matches))
-                lines.append("")
-        return lines
-
-    used = 0
-    if assets.textbook_text_file is not None and not slides:
-        for page_no, text in textbook_units(assets.textbook_text_file, assets.chapter)[:8]:
-            excerpt = text if len(text) <= 180 else text[:177].rstrip() + "..."
-            lines.extend([f"{style.question_heading} 閲嶇偣{used + 1}. 鏁欐潗 p.{page_no}", "", excerpt, ""])
-            used += 1
-        if used:
-            return lines
-
-    for slide_idx, slide_text in slides:
-        parts = [line.strip() for line in slide_text.splitlines() if line.strip()]
-        if len(parts) < 2:
-            continue
-        title = parts[0]
-        if title in {f"绗瑊assets.chapter}绔?{assets.title}", "鐩綍", "CONTENTS"}:
-            continue
-        body = "\n".join(f"- {item}" for item in format_slide_excerpt("\n".join(parts[1:])))
-        if not body.strip():
-            continue
-        segment = QuestionSegment(index=used + 1, prompt=title, body=body)
-        slide_matches = [(slide_idx, slide_text)]
-        selected_images = select_images(assets, segment, slide_matches, is_explicit_diagram_text(slide_text))
-        copied = copy_images(selected_images, output_image_dir, assets.chapter, image_counter) if selected_images else []
-        lines.extend([f"{style.question_heading} 閲嶇偣{used + 1}. {title}", "", body])
-        lines.extend(render_images(style, copied, assets.chapter))
-        lines.append("")
-        lines.extend(render_style_slide_matches(style, slide_matches))
-        lines.append("")
-        used += 1
-        if used >= 6:
-            break
-    if used == 0:
-        lines.extend(["[璇句欢涓湭鎻愬彇鍒板彲鐢ㄧ殑閲嶇偣姒傚康鍐呭]", ""])
-    return lines
-
-
-def match_analysis_segments(segments: Sequence[QuestionSegment], keywords_for_chapter: Sequence[str]) -> List[QuestionSegment]:
-    if not keywords_for_chapter:
-        return []
-    matched: List[QuestionSegment] = []
     for segment in segments:
-        body_lines = [line.strip() for line in segment.body.splitlines() if line.strip()]
-        caption_text = "\n".join(line for line in body_lines if re.match(r"^[鍥捐〃]\d+-\d+", line))
-        summary_text = "\n".join(body_lines[:5])
-        text = "\n".join([segment.prompt, caption_text, summary_text])
-        if any(keyword in text for keyword in keywords_for_chapter):
-            matched.append(segment)
-    return matched
+        segment.body = segment.body.strip()
+
+    return segments
 
 
-def validate_requested_questions(
-    cfg: SpecConfig,
-    chapter: int,
-    segments: Sequence[QuestionSegment],
-) -> None:
-    requested = cfg.chapter_question_map.get(chapter, [])
-    total = len(segments)
-    for number in requested:
-        if number < 1 or number > total:
-            cfg.warnings.append(
-                f"Chapter {chapter}: requested question {number} is outside the extracted range 1-{total}."
-            )
+def keywords(text: str, max_count: int = 10) -> List[str]:
+    cleaned = re.sub(r"[^一-龥a-zA-Z0-9]+", " ", text)
+    tokens = cleaned.split()
+    freq: Dict[str, int] = {}
+    for token in tokens:
+        if len(token) < 2 or token in STOP_TOKENS:
+            continue
+        freq[token] = freq.get(token, 0) + 1
+    ranked = sorted(freq.items(), key=lambda x: x[1], reverse=True)
+    return [token for token, _ in ranked[:max_count]]
 
 
-def build_chapter_file(
-    cfg: SpecConfig,
-    assets: ChapterAssets,
-    output_image_dir: Path,
-) -> Tuple[Path, int]:
-    segments = parse_question_segments(assets.exercise_text_file)
-    validate_requested_questions(cfg, assets.chapter, segments)
-    image_counter = [0]
-    style = cfg.style
+def slide_score(query_keywords: List[str], slide_text: str) -> float:
+    slide_lower = slide_text.lower()
+    matches = sum(1 for kw in query_keywords if kw.lower() in slide_lower)
+    return matches / len(query_keywords) if query_keywords else 0.0
 
+
+def pick_slide_matches(query: str, slides: List[Tuple[int, str]], max_matches: int = 3, threshold: float = 0.2) -> List[Tuple[int, str]]:
+    query_kw = keywords(query, max_count=10)
+    scored = [(slide_no, text, slide_score(query_kw, text)) for slide_no, text in slides]
+    scored = [(slide_no, text, score) for slide_no, text, score in scored if score >= threshold]
+    scored.sort(key=lambda x: x[2], reverse=True)
+    return [(slide_no, text) for slide_no, text, _score in scored[:max_matches]]
+
+
+def pick_textbook_matches(query: str, pages: List[Tuple[int, str]], max_matches: int = 3, threshold: float = 0.15) -> List[Tuple[int, str]]:
+    query_kw = keywords(query, max_count=10)
+    scored = [(page_no, text, slide_score(query_kw, text)) for page_no, text in pages]
+    scored = [(page_no, text, score) for page_no, text, score in scored if score >= threshold]
+    scored.sort(key=lambda x: x[2], reverse=True)
+    return [(page_no, text) for page_no, text, _score in scored[:max_matches]]
+
+
+def split_ppt_into_readable_lines(text: str) -> List[str]:
+    segment = text.strip()
+    segment = re.sub(r"(?<!^)(?=(?:（\d+）|[A-D]、|[一二三四五六七八九十]+、|\d+[、.]|[A-Za-z]\.))", "\n", segment)
+    lines = segment.splitlines()
+    return [line.strip() for line in lines if line.strip()]
+
+
+def format_ppt_supplement(matches: List[Tuple[int, str]], style: StyleConfig, max_lines: int = 200) -> str:
+    if not matches:
+        return ""
+    lines = []
+    total_lines = 0
+    for slide_no, text in matches:
+        lines.append(f"> **{style.supplement_title}（Slide {slide_no}）：**")
+        ppt_lines = split_ppt_into_readable_lines(text)
+        for ppt_line in ppt_lines:
+            if total_lines >= max_lines:
+                lines.append("> [截断：PPT内容过长]")
+                return "\n".join(lines)
+            lines.append(f"> - {ppt_line}")
+            total_lines += 1
+        lines.append(">")
+    return "\n".join(lines)
+
+
+def format_textbook_supplement(matches: List[Tuple[int, str]], max_chars: int = 600) -> str:
+    if not matches:
+        return ""
+    lines = ["> **教材整理：**"]
+    for page_no, text in matches:
+        excerpt = text[:max_chars].strip()
+        if len(text) > max_chars:
+            excerpt += "..."
+        lines.append(f"> - p.{page_no} {excerpt}")
+        lines.append(">")
+    return "\n".join(lines)
+
+
+def render_question(segment: QuestionSegment, assets: ChapterAssets, cfg: SpecConfig, style: StyleConfig) -> List[str]:
+    lines = [f"{style.question_heading} {segment.index}. {segment.prompt}", ""]
+    if segment.body.strip():
+        lines.extend([segment.body.strip(), ""])
+    else:
+        lines.extend(["[课后习题文件中未提取到答案内容]", ""])
+    query = segment.prompt + " " + segment.body[:200]
+    ppt_matches = pick_slide_matches(query, read_ppt_slides(assets.ppt_text_file), max_matches=3)
+    if ppt_matches:
+        lines.extend([format_ppt_supplement(ppt_matches, style), ""])
+    has_diagram_keyword = any(term in segment.prompt for term in DIAGRAM_TERMS)
+    if cfg.include_images and has_diagram_keyword and assets.exercise_image_files:
+        lines.extend(["", f"{style.section_heading} {style.image_section_title}", ""])
+        for img_path in assets.exercise_image_files:
+            rel_path = f"images/{img_path.name}"
+            lines.append(f"![{style.image_caption_prefix}]({rel_path})")
+            lines.append("")
+    return lines
+
+
+def render_keypoint_sections(assets: ChapterAssets, cfg: SpecConfig, style: StyleConfig) -> List[str]:
+    lines = [f"{style.section_heading} 重点概念", ""]
+    focus_points = assets.focus_points or []
+    ppt_slides = read_ppt_slides(assets.ppt_text_file)
+    textbook_pages = textbook_chapter_pages(assets.textbook_text_file, assets.chapter)
+    used = 0
+    for idx, focus in enumerate(focus_points, 1):
+        lines.extend([f"{style.question_heading} 重点{idx}. {focus}", ""])
+        matches = pick_slide_matches(focus, ppt_slides, max_matches=2)
+        if matches:
+            lines.extend([format_ppt_supplement(matches, style), ""])
+        textbook_matches = pick_textbook_matches(focus, textbook_pages, max_matches=2)
+        if textbook_matches:
+            lines.extend([format_textbook_supplement(textbook_matches), ""])
+        used += 1
+    if textbook_pages and len(textbook_pages) > 0:
+        for page_no, page_text in textbook_pages[:5]:
+            excerpt = page_text[:400].strip()
+            if len(excerpt) < 50:
+                continue
+            if len(page_text) > 400:
+                excerpt += "..."
+            lines.extend([f"{style.question_heading} 重点{used + 1}. 教材 p.{page_no}", "", excerpt, ""])
+            used += 1
+            if used >= 10:
+                break
+    if cfg.include_images and assets.ppt_image_files:
+        for img_path in assets.ppt_image_files[:5]:
+            title = img_path.stem.split("_")[-1]
+            if title in {f"{assets.chapter}章{assets.title}", "目录", "CONTENTS"}:
+                continue
+            if any(term in title for term in DIAGRAM_TERMS):
+                rel_path = f"images/{img_path.name}"
+                lines.extend([f"{style.question_heading} 重点{used + 1}. {title}", "", f"![{style.image_caption_prefix}]({rel_path})", ""])
+                used += 1
+                if used >= 15:
+                    break
+    if used == 0:
+        lines.extend(["[课件中未提取到可用的重点概念内容]", ""])
+    return lines
+
+
+def render_analysis_section(keywords_list: List[str], assets: ChapterAssets, cfg: SpecConfig, style: StyleConfig) -> List[str]:
+    if not keywords_list:
+        return []
+    lines = [f"{style.section_heading} 分析题", ""]
+    ppt_slides = read_ppt_slides(assets.ppt_text_file)
+    for keyword in keywords_list:
+        lines.extend([f"{style.question_heading} {keyword}", ""])
+        matches = pick_slide_matches(keyword, ppt_slides, max_matches=2, threshold=0.1)
+        if matches:
+            lines.extend([format_ppt_supplement(matches, style), ""])
+        else:
+            lines.extend(["[PPT中未找到对应内容]", ""])
+        if cfg.include_images:
+            found_images = [img for img in assets.ppt_image_files if keyword in img.stem]
+            for img_path in found_images[:2]:
+                rel_path = f"images/{img_path.name}"
+                lines.append(f"![{style.image_caption_prefix}]({rel_path})")
+                lines.append("")
+    return lines
+
+
+def build_chapter_file(assets: ChapterAssets, cfg: SpecConfig, style: StyleConfig) -> None:
     lines = [
-        f"# 绗瑊assets.chapter}绔?{assets.title}",
-        "",
-        "> 鍐呭涓ユ牸鏁寸悊鑷彁渚涚殑璇句欢銆佽鍚庝範棰樸€佹暀鏉?PDF 涓庡叾瀵煎嚭鍥剧墖锛屼笉棰濆鎵╁啓璇剧▼鍐呭銆?,
+        f"# 第{assets.chapter}章 {assets.title}",
         "",
     ]
-    rendered_count = 0
-
-    if cfg.question_source == "keypoints":
-        keypoint_lines = render_keypoint_sections(style, assets, output_image_dir, image_counter)
-        lines.extend(keypoint_lines)
-        rendered_count = max(1, len(assets.focus_points))
-        selected_questions: List[QuestionSegment] = []
-        analysis_segments: List[QuestionSegment] = []
+    question_numbers = cfg.chapter_question_map.get(assets.chapter, [])
+    analysis_keywords_list = cfg.analysis_keywords.get(assets.chapter, [])
+    if cfg.question_source == "exercises" and question_numbers:
+        if assets.exercise_text_file and assets.exercise_text_file.exists():
+            text = assets.exercise_text_file.read_text(encoding="utf-8")
+            segments = parse_question_segments(text)
+            segment_map = {seg.index: seg for seg in segments}
+            lines.extend([f"{style.section_heading} 问答", ""])
+            for qnum in question_numbers:
+                segment = segment_map.get(qnum)
+                if segment is None:
+                    lines.extend([f"{style.question_heading} {qnum}. [未找到]", "", "[题目未提取到]", ""])
+                    continue
+                lines.extend(render_question(segment, assets, cfg, style))
+        else:
+            lines.extend([f"{style.section_heading} 问答", "", "[课后习题文件缺失]", ""])
+        if analysis_keywords_list:
+            lines.extend(render_analysis_section(analysis_keywords_list, assets, cfg, style))
+    elif cfg.question_source == "keypoints":
+        lines.extend(render_keypoint_sections(assets, cfg, style))
+        if analysis_keywords_list:
+            lines.extend(render_analysis_section(analysis_keywords_list, assets, cfg, style))
     else:
-        selected_numbers = cfg.chapter_question_map.get(assets.chapter, [])
-        selected_questions = [segment for segment in segments if segment.index in selected_numbers]
-        if selected_questions:
-            lines.extend([f"{style.section_heading} 闂瓟", ""])
-            for segment in selected_questions:
-                lines.extend(render_question(style, segment, assets, output_image_dir, image_counter, cfg.include_images))
-            rendered_count += len(selected_questions)
-
-        analysis_segments = match_analysis_segments(segments, cfg.analysis_keywords.get(assets.chapter, []))
-        if analysis_segments:
-            lines.extend([f"{style.section_heading} 鍒嗘瀽棰?, ""])
-            for idx, segment in enumerate(analysis_segments, 1):
-                slide_matches = pick_slide_matches(read_ppt_slides(assets.ppt_text_file), segment.prompt)
-                selected_images = select_images(assets, segment, slide_matches, cfg.include_images)
-                copied = copy_images(selected_images, output_image_dir, assets.chapter, image_counter) if selected_images else []
-                body = format_answer_body(segment.body) or "[璇惧悗涔犻涓棰樻湭鎻愬彇鍒版鏂囧唴瀹筣"
-                lines.extend([f"{style.question_heading} 鍒嗘瀽{idx}. {segment.prompt}", "", body])
-                lines.extend(render_images(style, copied, assets.chapter))
-                lines.append("")
-                lines.extend(render_style_slide_matches(style, slide_matches))
-                lines.append("")
-            rendered_count += len(analysis_segments)
-
-    if rendered_count == 0:
-        lines.extend(
-            [
-                f"{style.section_heading} 璇存槑",
-                "",
-                "鏈珷鏈湪鑰冪偣鏄犲皠涓垪鍑洪棶绛旈鍙锋垨鍒嗘瀽棰樺叧閿瓧锛屽洜姝ゆ湭灞曞紑澶嶄範姝ｆ枃銆?,
-                "",
-            ]
-        )
-
-    out_path = cfg.output_dir / f"绗瑊assets.chapter}绔?{assets.title}.md"
-    out_path.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
-    return out_path, rendered_count
+        lines.extend(["[本章未在考点映射中列出问答题号或分析题关键字，因此未展开复习正文。]", ""])
+    out_path = cfg.output_dir / f"第{assets.chapter}章 {assets.title}.md"
+    out_path.write_text("\n".join(lines), encoding="utf-8")
+    print(f"Generated: {out_path}")
 
 
-def build_overview(cfg: SpecConfig, generated_files: Sequence[Path]) -> None:
+def copy_images_to_output(assets: Dict[int, ChapterAssets], cfg: SpecConfig) -> None:
+    if not cfg.include_images:
+        return
+    image_dir = cfg.output_dir / "images"
+    image_dir.mkdir(parents=True, exist_ok=True)
+    for entry in assets.values():
+        for img_path in entry.ppt_image_files + entry.exercise_image_files + entry.textbook_image_files:
+            if img_path.exists():
+                shutil.copy(img_path, image_dir / img_path.name)
+
+
+def build_overview(cfg: SpecConfig, assets: Dict[int, ChapterAssets]) -> None:
     if not cfg.generate_overview:
         return
-    lines = [
-        "# 澶嶄範鎻愮翰鎬昏",
-        "",
-        f"- 璇存槑鏂囦欢锛歚{cfg.spec_path.name}`",
-        f"- 杈撳嚭鐩綍锛歚{cfg.output_dir}`",
-        "",
-        "## 绔犺妭鏂囦欢",
-        "",
-    ]
-    for file_path in generated_files:
-        lines.append(f"- [{file_path.name}]({file_path.name})")
-    if cfg.warnings:
-        lines.extend(["", "## 棰勬涓庣敓鎴愭彁绀?, ""])
-        for warning in cfg.warnings:
-            lines.append(f"- {warning}")
-    (cfg.output_dir / "澶嶄範鎻愮翰鎬昏.md").write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
+    lines = ["# 复习提纲总览", ""]
+    for chapter in sorted(cfg.chapter_numbers):
+        entry = assets.get(chapter)
+        if entry is None:
+            lines.append(f"- 第{chapter}章 [未生成]")
+            continue
+        file_name = f"第{entry.chapter}章 {entry.title}.md"
+        lines.append(f"- [第{entry.chapter}章 {entry.title}]({file_name})")
+    overview_path = cfg.output_dir / "复习提纲总览.md"
+    overview_path.write_text("\n".join(lines), encoding="utf-8")
+    print(f"Generated: {overview_path}")
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("spec_path")
-    parser.add_argument("--output-dir")
-    parser.add_argument("--work-dir")
-    parser.add_argument("--refresh", action="store_true")
-    args = parser.parse_args(argv)
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Build Markdown review outlines from a spec file.")
+    parser.add_argument("spec_path", type=Path, help="Path to the spec file")
+    parser.add_argument("--output-dir", type=Path, help="Override output directory")
+    parser.add_argument("--work-dir", type=Path, help="Working directory for extraction outputs")
+    parser.add_argument("--refresh", action="store_true", help="Force re-extraction even if cached files exist")
+    args = parser.parse_args()
 
-    spec_path = Path(args.spec_path).resolve()
-    output_dir = Path(args.output_dir).resolve() if args.output_dir else None
-    work_dir = Path(args.work_dir).resolve() if args.work_dir else spec_path.parent / "_review_outline_work"
+    spec_path: Path = args.spec_path.resolve()
+    if not spec_path.exists():
+        print(f"Error: Spec file not found: {spec_path}", file=sys.stderr)
+        sys.exit(1)
 
-    cfg = parse_spec(spec_path, output_dir)
-    if cfg.slides_dir is None and cfg.textbook_pdf is None:
-        raise FileNotFoundError("Spec parsing did not resolve slides_dir or textbook_pdf.")
-    if cfg.question_source == "exercises" and cfg.exercises_dir is None:
-        raise FileNotFoundError("Spec parsing did not resolve exercises_dir for exercises mode.")
+    cfg = parse_spec(spec_path, args.output_dir)
+    work_dir = args.work_dir or spec_path.parent / ".work"
+    work_dir.mkdir(parents=True, exist_ok=True)
 
-    cfg.output_dir.mkdir(parents=True, exist_ok=True)
-    default_reference = SCRIPT_DIR.parent / "output-examples" / "閫氱敤鍙傝€冩牸寮?md"
-    cfg.style = infer_style(cfg.reference_format or default_reference)
     assets = scan_assets(cfg)
     preflight(cfg, assets)
-    ensure_extracted(cfg, assets, work_dir, args.refresh)
-
-    generated: List[Path] = []
-    output_image_dir = cfg.output_dir / "images"
-    for chapter in cfg.chapter_numbers:
-        if chapter not in assets:
-            continue
-        out_path, used_count = build_chapter_file(cfg, assets[chapter], output_image_dir)
-        generated.append(out_path)
-        print(f"[build] {out_path.name}: {used_count} sections")
-
-    build_overview(cfg, generated)
     if cfg.warnings:
-        print("[build] warnings:")
+        print("[Warnings]")
         for warning in cfg.warnings:
             print(f"  - {warning}")
-    return 0
+
+    ensure_extracted(cfg, assets, work_dir, args.refresh)
+    cfg.style = infer_style(cfg.reference_format)
+    cfg.output_dir.mkdir(parents=True, exist_ok=True)
+
+    for chapter in cfg.chapter_numbers:
+        entry = assets.get(chapter)
+        if entry is None:
+            print(f"Skipping chapter {chapter}: no assets found")
+            continue
+        build_chapter_file(entry, cfg, cfg.style)
+
+    copy_images_to_output(assets, cfg)
+    build_overview(cfg, assets)
+    print("\nAll done.")
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()
 
